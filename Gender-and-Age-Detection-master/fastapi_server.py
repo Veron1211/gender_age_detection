@@ -22,7 +22,6 @@ PADDING = 20  # padding added around the detected face box
 
 def detect_faces(frame: np.ndarray) -> List[List[int]]:
     h, w = frame.shape[:2]
-    # Note the fix: swapRB=True for correct color channel order
     blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), [104, 117, 123], swapRB=True, crop=False)
     face_net.setInput(blob)
     detections = face_net.forward()
@@ -40,7 +39,14 @@ def detect_faces(frame: np.ndarray) -> List[List[int]]:
             y2 = min(h - 1, y2 + PADDING)
 
             faces.append([x1, y1, x2, y2])
+
+    # If multiple faces are detected, select the largest one
+    if len(faces) > 1:
+        largest_face = max(faces, key=lambda box: (box[2] - box[0]) * (box[3] - box[1]))  # Area of the bounding box
+        faces = [largest_face]
+
     return faces
+
 
 def process_face(face: np.ndarray) -> Dict[str, str]:
     blob = cv2.dnn.blobFromImage(face, 1.0, (227, 227), MODEL_MEAN_VALUES, swapRB=False)
@@ -71,7 +77,7 @@ async def detect(image: UploadFile = File(...)) -> Dict[str, Union[str, List[Dic
     if not faces:
         return {"results": []}
 
-    # Process each face
+    # Process the largest face
     processed = []
     for x1, y1, x2, y2 in faces:
         face_img = frame[y1:y2, x1:x2]
@@ -84,6 +90,7 @@ async def detect(image: UploadFile = File(...)) -> Dict[str, Union[str, List[Dic
         processed.append(result)
 
     return {"results": processed}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, workers=2)

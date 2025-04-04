@@ -5,7 +5,7 @@ import numpy as np
 from threading import Thread
 from queue import Queue, Empty
 
-SERVER_URL = "http://localhost:8000/detect/"
+SERVER_URL = "http://127.0.0.1:8000/detect/"
 FRAME_QUEUE_SIZE = 2  # Keep only latest frames
 
 class AsyncClient:
